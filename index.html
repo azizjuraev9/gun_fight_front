@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        #arena {
+            position: absolute;
+            max-width: 100%;
+            max-height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="arena">
+
+</canvas>
+
+<script>
+    const STAGE_STAND = 1;
+    const STAGE_SIT = 2;
+    const STAGE_LAY = 3;
+
+    class Point {
+        constructor(x, y, scale = 1, offset = false) {
+            this.xPoint = x;
+            this.yPoint = y;
+            this.scale = scale;
+            this.offset = offset;
+        }
+
+        get x() {
+            return (this.offset ? this.offset.x : 0) + (this.xPoint * this.scale);
+        }
+
+        get y() {
+            return (this.offset ? this.offset.y : 0) + (this.yPoint * this.scale);
+        }
+
+        offset;
+        scale = 1;
+        xPoint;
+        yPoint;
+    }
+
+    class Bullet {
+        constructor(x, y, dx, dy, speed) {
+            this.x = x;
+            this.y = y;
+            this.dx = dx;
+            this.dy = dy;
+            this.speed = speed;
+        }
+
+        update() {
+            this.x += this.dx * this.speed;
+            this.y += this.dy * this.speed;
+        }
+
+        draw(ctx) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 2, 0, 2 * Math.PI);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+        }
+    }
+
+    class PlayerShape {
+        position = new Point(0, 0);
+        scale = 10;
+        r = false;
+        handLength = 5;
+
+        constructor(position, scale = 10, r = false) {
+            this.position = position;
+            this.scale = scale;
+            this.r = r;
+        }
+
+        get head() {
+            return new Point(this.headPoints.x, this.headPoints.y, this.scale, this.position);
+        }
+
+        get pointsStand() {
+            return [
+                [
+                    new Point(this.listPointsStand[0][0].x, this.listPointsStand[0][0].y, this.scale, this.position),
+                    new Point(this.listPointsStand[0][1].x, this.listPointsStand[0][1].y, this.scale, this.position),
+                    new Point(this.listPointsStand[0][2].x, this.listPointsStand[0][2].y, this.scale, this.position),
+                ],
+                [
+                    new Point(this.listPointsStand[1][0].x, this.listPointsStand[1][0].y, this.scale, this.position),
+                    new Point(this.listPointsStand[1][1].x, this.listPointsStand[1][1].y, this.scale, this.position),
+                    new Point(this.listPointsStand[1][2].x, this.listPointsStand[1][2].y, this.scale, this.position),
+                    new Point(this.listPointsStand[1][3].x, this.listPointsStand[1][3].y, this.scale, this.position),
+                ],
+                [
+                    new Point(this.listPointsStand[2][0].x, this.listPointsStand[2][0].y, this.scale, this.position),
+                    new Point(this.listPointsStand[2][1].x, this.listPointsStand[2][1].y, this.scale, this.position),
+                    new Point(this.listPointsStand[2][2].x, this.listPointsStand[2][2].y, this.scale, this.position),
+                ]
+            ];
+        }
+
+        get pointsHand() {
+            return [
+                new Point(this.listPointsHand[0].x, this.listPointsHand[0].y, this.scale, this.position),
+                new Point(this.listPointsHand[1].x, this.listPointsHand[1].y, this.scale, this.position),
+            ];
+        }
+
+        headPoints = { x: 3.3, y: 0 };
+
+        listPointsStand = [
+            [
+                { x: 0, y: 5 },
+                { x: 1, y: 3 },
+                { x: 3, y: 1 },
+            ],
+            [
+                { x: 3, y: 1 },
+                { x: 2, y: 5 },
+                { x: 1.5, y: 7 },
+                { x: 1, y: 9 },
+            ],
+            [
+                { x: 2, y: 5 },
+                { x: 3, y: 7 },
+                { x: 3, y: 9 },
+            ]
+        ];
+
+        listPointsHand = [
+            { x: 3, y: 1 },
+            { x: 5, y: 5 },
+        ];
+
+        reverse = () => {
+            for (let points of this.listPointsStand) {
+                for (let point of points) {
+                    point.x *= -1;
+                }
+            }
+
+            for (let point of this.listPointsHand) {
+                point.x *= -1;
+            }
+
+            this.headPoints.x *= -1;
+        }
+    }
+
+    let player = {
+        health: 100,
+        stage: STAGE_STAND,
+        point_angle: 180,
+        position: [100, 500]
+    }
+
+    let playground = {
+        canvas: document.getElementById("arena"),
+        width: 1000,
+        height: 600,
+        lineWidth: 5,
+        lineCap: "round",
+        bullets: [],
+        bulletSpeed: 50
+    }
+
+    playground.canvas.width = playground.width;
+    playground.canvas.height = playground.height;
+
+    playground.context = playground.canvas.getContext('2d');
+
+    playground.clearFrame = () => {
+        playground.context.clearRect(0, 0, playground.width, playground.height);
+    }
+
+    playground.drawLine = (p1, p2) => {
+        playground.context.beginPath();
+        playground.context.moveTo(p1.x, p1.y);
+        playground.context.lineWidth = playground.lineWidth;
+        playground.context.lineCap = playground.lineCap;
+        playground.context.lineTo(p2.x, p2.y);
+        playground.context.stroke();
+    }
+
+    playground.drawCircle = (point) => {
+        playground.context.beginPath();
+        playground.context.arc(point.x, point.y, point.scale, 0, 2 * Math.PI);
+        playground.context.fillStyle = 'black';  // set color for player head
+        playground.context.fill();
+    }
+
+    playground.getHandMousePos = (player, mouseEvent) => {
+        const handBase = player.pointsHand[0];
+
+        const dx = mouseEvent.clientX - handBase.x;
+        const dy = mouseEvent.clientY - handBase.y;
+
+        const length = Math.sqrt((dx * dx) + (dy * dy));
+
+        const unitX = dx / length;
+        const unitY = dy / length;
+        const endX = handBase.x + unitX * player.handLength * player.scale;
+        const endY = handBase.y + unitY * player.handLength * player.scale;
+        return { x: endX, y: endY };
+    }
+
+    playground.shootBullet = (player, mouseEvent) => {
+        const handBase = player.pointsHand[0];
+
+        const dx = mouseEvent.clientX - handBase.x;
+        const dy = mouseEvent.clientY - handBase.y;
+
+        const length = Math.sqrt((dx * dx) + (dy * dy));
+
+        const unitX = dx / length;
+        const unitY = dy / length;
+
+        const bullet = new Bullet(handBase.x, handBase.y, unitX, unitY, playground.bulletSpeed);
+        playground.bullets.push(bullet);
+    }
+
+    playground.updateBullets = () => {
+        playground.bullets.forEach((bullet, index) => {
+            bullet.update();
+
+            if (
+                bullet.x < 0 || bullet.x > playground.width ||
+                bullet.y < 0 || bullet.y > playground.height
+            ) {
+                playground.bullets.splice(index, 1);
+            }
+        });
+    }
+
+    playground.drawBullets = () => {
+        playground.bullets.forEach(bullet => {
+            bullet.draw(playground.context);
+        });
+    }
+
+    playground.drawPlayer = (player) => {
+        for (let points of player.pointsStand) {
+            let prevPoint = null;
+            for (let point of points) {
+                if (prevPoint !== null) {
+                    playground.drawLine(prevPoint, point);
+                }
+                prevPoint = point;
+            }
+        }
+
+        let prevPoint = null;
+        for (let point of player.pointsHand) {
+            if (prevPoint !== null) {
+                playground.drawLine(prevPoint, point);
+            }
+            prevPoint = point;
+        }
+
+        playground.drawCircle(player.head);
+    }
+
+    let player1 = new PlayerShape(new Point(100, playground.height - 200));
+    let player2 = new PlayerShape(new Point(playground.width - 150, playground.height - 200), 10, true);
+    player2.reverse();
+
+    playground.drawAll = () => {
+        playground.clearFrame();
+        playground.drawPlayer(player1);
+        playground.drawPlayer(player2);
+        playground.drawBullets();
+    }
+
+    function gameLoop() {
+        playground.updateBullets();
+        playground.drawAll();
+        requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+
+    window.onmousemove = function (event) {
+        let cords = playground.getHandMousePos(player1, event);
+        player1.listPointsHand[1].x = (cords.x - player1.position.x) / player1.scale;
+        player1.listPointsHand[1].y = (cords.y - player1.position.y) / player1.scale;
+    }
+
+    window.onmousedown = function (event) {
+        playground.shootBullet(player1, event);
+    }
+</script>
+</body>
+</html>
