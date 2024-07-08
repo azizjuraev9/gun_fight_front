@@ -49,18 +49,23 @@
                 x: this.offsetX,
                 y: this.offsetY,
             };
+            this.initialPosition = {
+                x: this.offsetX,
+                y: this.offsetY,
+            };
             this.textX = this.offsetX + 10;
-            this.textY = this.offsetY + 15;
+            this.textY = this.offsetY + 18;
             this.fontSize = 18;
             this.textColor = 'white';
             this.player = player;
             this.playground = playground;
             this.maxWidth = (playground.width / 2) - this.offsetX - 50;
-            this.height = 20;
+            this.height = 25;
             this.width = this.maxWidth * (this.player.health / 100);
 
             if (this.player.reversed) {
-                this.position.x = playground.width - this.width - this.offsetX
+                this.position.x = playground.width - this.width - this.offsetX;
+                this.initialPosition.x = playground.width - this.maxWidth - this.offsetX;
                 this.textX = playground.width - this.textY - this.textReverseXOffset;
             }
         }
@@ -73,7 +78,8 @@
             }
 
             if (this.player.reversed) {
-                this.position.x = playground.width - this.width - this.offsetX
+                this.position.x = playground.width - this.width - this.offsetX;
+                this.initialPosition.x = playground.width - this.maxWidth - this.offsetX;
                 this.textX = playground.width - this.textY - this.textReverseXOffset;
             }
         }
@@ -83,6 +89,13 @@
                 x: this.width,
                 y: this.height
             }, this.color)
+
+            let ctx = this.playground.context;
+
+            ctx.lineWidth = "2";
+            ctx.strokeStyle = "black";
+            ctx.strokeRect(this.initialPosition.x, this.initialPosition.y, this.maxWidth, this.height);
+
             this.playground.text(
                 {
                     x: this.textX,
@@ -380,7 +393,7 @@
         }
     }
 
-    const playground = new Playground('arena', 1000, 600);
+    const playground = new Playground('arena', 1500, 600);
 
     const player1 = new Player(playground, new Point(100, playground.height - 200));
     const player2 = new Player(playground, new Point(playground.width - 150, playground.height - 200), 10);
