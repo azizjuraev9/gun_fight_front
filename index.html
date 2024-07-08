@@ -134,9 +134,9 @@
 
         collidesWith(player) {
             const head = player.head;
-            const body = player.pointsStand[0];
+            const body = player.pointsBody[0];
             const hands = player.pointsHand;
-            const legs = player.pointsStand[2];
+            const legs = player.pointsBody[2];
 
             const lineX1 = this.startX;
             const lineY1 = this.startY;
@@ -193,51 +193,30 @@
     }
 
     class Player {
-        constructor(playground, position, scale = 10) {
+        constructor(playground, position, state, scale = 10) {
             this.playground = playground;
             this.bullets = [];
             this.bulletSpeed = 80;
             this.position = position;
+            this.state = JSON.parse(JSON.stringify(state));
             this.scale = scale;
             this.health = 100;
             this.handLength = 5;
-            this.headPoints = {x: 3.3, y: 0};
-            this.reversed = false;
             this.healthBar = new HealthBar(this, playground)
-            this.listPointsStand = [
-                [
-                    {x: 0, y: 5},
-                    {x: 1, y: 3},
-                    {x: 3, y: 1},
-                ],
-                [
-                    {x: 3, y: 1},
-                    {x: 2, y: 5},
-                    {x: 1.5, y: 7},
-                    {x: 1, y: 9},
-                ],
-                [
-                    {x: 2, y: 5},
-                    {x: 3, y: 7},
-                    {x: 3, y: 9},
-                ]
-            ];
-            this.listPointsHand = [
-                {x: 3, y: 1},
-                {x: 5, y: 5},
-            ];
+            this.reversed = false;
+            this.shotLeg = false;
         }
 
         get head() {
-            return new Point(this.headPoints.x, this.headPoints.y, this.scale, this.position);
+            return new Point(this.state.head.x, this.state.head.y, this.scale, this.position);
         }
 
-        get pointsStand() {
-            return this.listPointsStand.map(points => points.map(point => new Point(point.x, point.y, this.scale, this.position)));
+        get pointsBody() {
+            return this.state.body.map(points => points.map(point => new Point(point.x, point.y, this.scale, this.position)));
         }
 
         get pointsHand() {
-            return this.listPointsHand.map(point => new Point(point.x, point.y, this.scale, this.position));
+            return this.state.hand.map(point => new Point(point.x, point.y, this.scale, this.position));
         }
 
         getHandMousePos(mouseEvent) {
@@ -279,15 +258,15 @@
                 switch (collision) {
                     case 3:
                         this.bullets.splice(index, 1);
-                        player2.shot(70);
+                        player2.shot(70, 1);
                         break;
                     case 2:
                         this.bullets.splice(index, 1);
-                        player2.shot(30);
+                        player2.shot(30, 2);
                         break;
                     case 1:
                         this.bullets.splice(index, 1);
-                        player2.shot(10);
+                        player2.shot(10, 3);
                         break;
                 }
             });
@@ -300,7 +279,8 @@
         }
 
         drawPlayer() {
-            this.pointsStand.forEach(points => {
+            // console.log("1");
+            this.pointsBody.forEach(points => {
                 let prevPoint = null;
                 points.forEach(point => {
                     if (prevPoint !== null) {
@@ -319,18 +299,27 @@
             });
 
             this.playground.drawCircle(this.head);
+            // console.log("2");
+        }
+
+        shot(damage, pos) {
+            this.health -= damage;
+            this.healthBar.update();
+            if (pos === 3) {
+                this.shotLeg = true;
+                this.state = playerStateLay;
+                if (this.reversed)
+                {
+                    this.reverse();
+                }
+            }
         }
 
         reverse() {
             this.reversed = true;
-            this.listPointsStand.forEach(points => points.forEach(point => point.x *= -1));
-            this.listPointsHand.forEach(point => point.x *= -1);
-            this.headPoints.x *= -1;
-        }
-
-        shot(damage) {
-            this.health -= damage;
-            this.healthBar.update();
+            this.state.body.forEach(points => points.forEach(point => point.x *= -1));
+            this.state.hand.forEach(point => point.x *= -1);
+            this.state.head.x *= -1;
         }
     }
 
@@ -371,7 +360,7 @@
             this.context.fillRect(p1.x, p1.y, p2.x, p2.y);
         }
 
-        text(pos, text, size, color){
+        text(pos, text, size, color) {
             this.context.font = size + "px Courier New";
             this.context.fillStyle = color;
             this.context.fillText(text, pos.x, pos.y);
@@ -393,19 +382,120 @@
         }
     }
 
+    const playerStateStand = {
+        head: {x: 3.3, y: 0}, // head
+        hand: [
+            {x: 3, y: 1},
+            {x: 5, y: 5},
+        ], // hand
+        body: [
+            [
+                {x: 0, y: 5},
+                {x: 1, y: 3},
+                {x: 3, y: 1},
+            ],
+            [
+                {x: 3, y: 1},
+                {x: 2, y: 5},
+                {x: 1.5, y: 7},
+                {x: 1, y: 9},
+            ],
+            [
+                {x: 2, y: 5},
+                {x: 3, y: 7},
+                {x: 3, y: 9},
+            ]
+        ] // body
+    };
+
+    const playerStateSit = {
+        head: {x: 3.7, y: 4.5}, // head
+        hand: [
+            {x: 3.5, y: 5.5},
+            {x: 3.5, y: 10.5},
+        ], // hand
+        body: [
+            [
+                {x: 0, y: 6.5},
+                {x: 1.5, y: 5.5},
+                {x: 3.5, y: 5.5},
+            ],
+            [
+                {x: 3.5, y: 5.5},
+                {x: 1, y: 8},
+                {x: 2, y: 9},
+                {x: -0.5, y: 9},
+            ],
+            [
+                {x: 1, y: 8},
+                {x: 3.5, y: 7},
+                {x: 4, y: 9},
+            ]
+        ] // body
+    };
+
+    const playerStateLay = {
+        head: {x: 9.3, y: 7}, // head
+        hand: [
+            {x: 9, y: 8},
+            {x: 14, y: 8},
+        ], // hand
+        body: [
+            [
+                {x: 9, y: 8},
+                {x: 11, y: 9},
+                {x: 13, y: 9},
+            ],
+            [
+                {x: 9, y: 8},
+                {x: 5, y: 9},
+                {x: 3, y: 9},
+                {x: 0.5, y: 9},
+            ],
+            [
+                {x: 5, y: 9},
+                {x: 3, y: 10},
+                {x: 1, y: 10},
+            ]
+        ] // body
+    };
+
     const playground = new Playground('arena', 1500, 600);
 
-    const player1 = new Player(playground, new Point(100, playground.height - 200));
-    const player2 = new Player(playground, new Point(playground.width - 150, playground.height - 200), 10);
+    const player1 = new Player(playground, new Point(100, playground.height - 200), playerStateStand, 10);
+    const player2 = new Player(playground, new Point(playground.width - 150, playground.height - 200), playerStateStand, 10);
     player2.reverse();
     player2.healthBar.update();
 
     playground.updateAndDraw([player1, player2]);
 
+    let lastMove = {
+        clientX: 500,
+        clientY: 500
+    };
     window.onmousemove = function (event) {
+        lastMove = {
+            clientX: event.clientX,
+            clientY: event.clientY
+        };
+
         const cords = player1.getHandMousePos(event);
-        player1.listPointsHand[1].x = (cords.x - player1.position.x) / player1.scale;
-        player1.listPointsHand[1].y = (cords.y - player1.position.y) / player1.scale;
+        player1.state.hand[1].x = (cords.x - player1.position.x) / player1.scale;
+        player1.state.hand[1].y = (cords.y - player1.position.y) / player1.scale;
+    }
+
+    window.onkeydown = (e) => {
+        if (e.ctrlKey && !player1.shotLeg) {
+            player1.state = playerStateSit;
+            window.onmousemove(lastMove);
+        }
+    }
+
+    window.onkeyup = (e) => {
+        if (e.key === 'Control' && !player1.shotLeg) {
+            player1.state = playerStateStand;
+            window.onmousemove(lastMove);
+        }
     }
 
     window.onmousedown = function (event) {
